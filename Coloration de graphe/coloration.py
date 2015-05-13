@@ -14,13 +14,32 @@ import matplotlib.pyplot as plt
 G = nx.Graph()
 H = range(8)
 G.add_nodes_from(H)
-G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)],color='r')
+G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)],color=None)
 
-# Coloration de chaque sommet par une couleur distincte
-for i in range(8):
-    G.node[i]['color']=i    
+# Ordre du graphe
+numberOfNodes = len(G)
 
+## Coloration de chaque sommet par une couleur distincte
+#for i in range(8):
+#    G.node[i]['color']=i    
 
+# Liste des sommets dans l'ordre décroissant des degrés
+degres =nx.degree(G)
+liste = sorted(degres, key=degres.get, reverse=True)
+
+# Coloration des sommets par l'algorithme glouton
+for sommet in liste:
+    voisins = nx.neighbors(G, sommet)
+    couleurDesVoisins = nx.get_node_attributes(G.subgraph(voisins),'color').values()
+    print couleurDesVoisins
+    couleur = 0
+    while True:
+        if (couleur in couleurDesVoisins):
+            couleur += 1
+        else:
+            G.node[sommet]['color']=couleur
+            break
+        
 # Tracé du graphe
 pos=nx.spring_layout(G)
 nx.draw_networkx(G,pos,node_color=nx.get_node_attributes(G,'color').values())
