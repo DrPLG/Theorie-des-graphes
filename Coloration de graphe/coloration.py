@@ -18,6 +18,9 @@ H = range(8)
 G.add_nodes_from(H,dsat=0)
 G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)])
 
+# Ordre des cliques maximales
+minorant = nx.graph_clique_number(G)
+# print minorant
 
 # Ordre du graphe
 numberOfNodes = len(G)
@@ -30,9 +33,7 @@ numberOfNodes = len(G)
 degres =nx.degree(G)
 liste = sorted(degres, key=degres.get, reverse=True)
 
-
 # Coloration des sommets par DSATUR
-
 
 degreMax = max(degres.values())
 #print degremax
@@ -88,6 +89,11 @@ while numberOfColoredNodes<numberOfNodes:
             couleur += 1
 
 # print nx.get_node_attributes(G,'color').values()    
+numberOfColors = max(nx.get_node_attributes(G,'color').values() )
+if numberOfColors == minorant:
+    print "Coloration optimale. Le nombre chromatique est "+str(minorant)+"."
+else:
+    print "Le nombre chromatique est compris entre "+str(minorant)+" et "+str(numberOfColors)+"."
               
 # Tracé du graphe
 pos=nx.spring_layout(G)
