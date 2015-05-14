@@ -7,13 +7,59 @@
 # V 0.03 Mise en place de l'algorithme DSATUR. Validé le 14.05.2015
 # V 0.04 Calcul de la taille de la clique maximale, pour obtenir un minorant du nombre chromatique. Validé le 14.05.2015
 # V 0.05 Lecture de fichiers pour tester sur le programme sur d'autres graphes. Validé le 14.05.2015
+# V 0.06 Algorithme de Sikov (1/2). Contractions. Validé le 14.05.2015 
 
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
 
 
+################################################################################
+# Fonctions auxiliaires
 
+# Contraction
+def Sikov(Gs,couleurs):
+    degres = nx.degree(Gs)
+    ordre = len(Gs)
+    if (min(degres.values())+1==ordre):
+        couleur = 0
+        for sommet in Gs:
+            couleurs[sommet] = couleur
+            couleur += 1
+        return couleurs
+    else:
+        liste = sorted(degres, key=degres.get, reverse=True)
+        # Choix du sommet de degré le plus élevé, mais inférieur strictement à ordre-1
+        i = 0
+        while True:
+            if degres[liste[i]]<ordre-1:
+                sommetAccueil = liste[i]
+                break
+            else:
+                i += 1
+        # Choix du sommet de degré le plus faible, non voisin du précédent.
+        voisinsA = nx.neighbors(Gs, sommetAccueil)
+        i = -1
+        while True:
+            if liste[i] not in voisinsA:
+                sommetSupprime = liste[i]
+                break
+            else:
+                i -= 1
+        # Copie du graphe, 
+        Hs = Gs.copy()
+        # Ajout des nouvelles arêtes
+        voisinsS = nx.neighbors(Hs, sommetSupprime)
+        for voisin in voisinsS:
+            Hs.add_edge(sommetAccueil, voisin)
+        # Et suppression du sommetSupprime
+        Hs.remove_node(sommetSupprime)
+        couleurs[sommetSupprime] = "c"+str(sommetAccueil)
+    return Sikov(Hs,couleurs)
+
+
+
+################################################################################  
 # Emplacement du fichier data
 fileLocation = sys.argv[1].strip()
 inputDataFile = open(fileLocation, 'r')
@@ -37,20 +83,18 @@ for i in range(1, edgeCount+1):
     parts = line.split()
     G.add_edge(int(parts[0]), int(parts[1]))
 
-
-
-
-
 ## Création du graphe
 #G = nx.Graph()
 #H = range(8)
 #G.add_nodes_from(H,dsat=0)
 #G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)])
 
+################################################################################  
 # Ordre des cliques maximales
 minorant = nx.graph_clique_number(G)
 # print minorant
 
+################################################################################  
 # Ordre du graphe
 numberOfNodes = len(G)
 
@@ -123,7 +167,29 @@ if numberOfColors == minorant:
     print "Coloration optimale. Le nombre chromatique est "+str(minorant)+"."
 else:
     print "Le nombre chromatique est compris entre "+str(minorant)+" et "+str(numberOfColors)+"."
-              
+ 
+################################################################################  
+# Début de l'algorithme avec contractions de Sikov
+
+# Remise à -1 des couleurs
+for sommet in liste:
+    G.node[sommet]['color']=-1
+    
+couleurs = Sikov(G,nx.get_node_attributes(G,'color').values())                      
+
+print couleurs
+
+# Sans doute à revoir dans le futur, besoin de plusieurs passages ?
+for sommet in liste:
+    if type(couleurs[sommet]) == int:
+        G.node[sommet]['color']=couleurs[sommet]
+    else:
+        G.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
+                                                          
+                                                                                                                    
+                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                  
+################################################################################                                                              
 # Tracé du graphe
 pos={0:(1,2),
      1:(1,0),
@@ -133,6 +199,6 @@ pos={0:(1,2),
      5:(4,0),
      6:(3,1),
      7:(5,1)}
-pos=nx.shell_layout(G)
-#nx.draw_networkx(G,pos,node_color=nx.get_node_attributes(G,'color').values())
+#pos=nx.shell_layout(G)
+nx.draw_networkx(G,pos,node_color=nx.get_node_attributes(G,'color').values())
 plt.show()
