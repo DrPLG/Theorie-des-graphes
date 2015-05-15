@@ -8,6 +8,8 @@
 # V 0.04 Calcul de la taille de la clique maximale, pour obtenir un minorant du nombre chromatique. Validé le 14.05.2015
 # V 0.05 Lecture de fichiers pour tester sur le programme sur d'autres graphes. Validé le 14.05.2015
 # V 0.06 Algorithme de Sikov (1/2). Contractions. Validé le 14.05.2015 
+# V 0.07 Algorithme de Sikov (2/2). Ajout d'arête. Validé le 15.05.2015
+# Mise en garde : à utiliser uniquement avec des petits graphes, et beaucoup d'arêtes.
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -17,16 +19,17 @@ import sys
 ################################################################################
 # Fonctions auxiliaires
 
-# Contraction
+
 def Sikov(Gs,couleurs):
     degres = nx.degree(Gs)
     ordre = len(Gs)
+    # Identification d'une clique
     if (min(degres.values())+1==ordre):
         couleur = 0
         for sommet in Gs:
             couleurs[sommet] = couleur
             couleur += 1
-        return couleurs
+        return (couleurs,ordre)
     else:
         liste = sorted(degres, key=degres.get, reverse=True)
         # Choix du sommet de degré le plus élevé, mais inférieur strictement à ordre-1
@@ -46,6 +49,7 @@ def Sikov(Gs,couleurs):
                 break
             else:
                 i -= 1
+        # Contraction
         # Copie du graphe, 
         Hs = Gs.copy()
         # Ajout des nouvelles arêtes
@@ -54,8 +58,23 @@ def Sikov(Gs,couleurs):
             Hs.add_edge(sommetAccueil, voisin)
         # Et suppression du sommetSupprime
         Hs.remove_node(sommetSupprime)
-        couleurs[sommetSupprime] = "c"+str(sommetAccueil)
-    return Sikov(Hs,couleurs)
+        couleursHs= couleurs[:]
+        couleursHs[sommetSupprime] = "c"+str(sommetAccueil)
+        
+        # Ajout d'arête
+        Is = Gs.copy()
+        Is.add_edge(sommetAccueil, sommetSupprime)
+        couleursIs = couleurs[:]
+        # Calcul des deux colorations avec les deux nouveaux graphes
+        outHs = Sikov(Hs,couleursHs)
+        outIs = Sikov(Is,couleursIs)
+        #print outHs, outIs
+        if outHs[1]<=outIs[1]:
+            return (outHs[0][:],outHs[1])
+        else:
+            return (outIs[0][:],outIs[1])
+        
+    
 
 
 
@@ -175,7 +194,9 @@ else:
 for sommet in liste:
     G.node[sommet]['color']=-1
     
-couleurs = Sikov(G,nx.get_node_attributes(G,'color').values())                      
+out = Sikov(G,nx.get_node_attributes(G,'color').values())                      
+couleurs = out[0]
+gamma = out[1]
 
 print couleurs
 
@@ -186,19 +207,19 @@ for sommet in liste:
     else:
         G.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
                                                           
-                                                                                                                    
+print "Coloration optimale. Le nombre chromatique est "+str(gamma)+"."                                                                                                                    
                                                                                                                                                                               
                                                                                                                                                                                                                                                                                                   
 ################################################################################                                                              
 # Tracé du graphe
-pos={0:(1,2),
-     1:(1,0),
-     2:(0,1),
-     3:(2,1),
-     4:(4,2),
-     5:(4,0),
-     6:(3,1),
-     7:(5,1)}
-#pos=nx.shell_layout(G)
+#pos={0:(1,2),
+     #1:(1,0),
+     #2:(0,1),
+     #3:(2,1),
+     #4:(4,2),
+     #5:(4,0),
+     #6:(3,1),
+     #7:(5,1)}
+pos=nx.shell_layout(G)
 nx.draw_networkx(G,pos,node_color=nx.get_node_attributes(G,'color').values())
 plt.show()
