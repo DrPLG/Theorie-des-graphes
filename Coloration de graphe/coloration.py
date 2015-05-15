@@ -11,6 +11,7 @@
 # V 0.07 Algorithme de Sikov (2/2). Ajout d'arête. Validé le 15.05.2015
 # Mise en garde : à utiliser uniquement avec des petits graphes, et beaucoup d'arêtes.
 # V 0.08 Utilisation du minorant pour identifier avant et pendant l'algorithme une solution optimale. Validé le 15.05.2015
+ 
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -21,6 +22,22 @@ global minorant
 ################################################################################
 # Fonctions auxiliaires
 
+# Calcul de trois minorants
+def getMinorant(Gm,clique):
+# Calcul de trois minorants, dont deux en utilisant les degrés, et un (si clique=True) qui calcule la taille d'une clique maximale
+# Renvoie le plus grand des trois minorants    
+    m1 = 1
+    if clique == True:
+        m1 = nx.graph_clique_number(Gm)
+    ordre = len(Gm)    
+    degreMin = min(nx.degree(Gm).values())
+    numberOfEdges = nx.number_of_edges(Gm)
+    
+    m2 = float(ordre)/(ordre-degreMin)
+    m3 = float(ordre)**2/(ordre**2-2*numberOfEdges)
+    
+    return max(m1,m2,m3)
+        
 
 def Sikov(Gs,couleurs):
     global minorant
@@ -32,6 +49,7 @@ def Sikov(Gs,couleurs):
         for sommet in Gs:
             couleurs[sommet] = couleur
             couleur += 1
+        print ordre
         return (couleurs,ordre)
     else:
         liste = sorted(degres, key=degres.get, reverse=True)
@@ -73,7 +91,7 @@ def Sikov(Gs,couleurs):
         if outHs[1]==minorant:
             return (outHs[0][:],outHs[1])
         outIs = Sikov(Is,couleursIs)
-        print outHs[1], outIs[1]
+        # print outHs[1], outIs[1]
         if outHs[1]<=outIs[1]:
             return (outHs[0][:],outHs[1])
         else:
@@ -115,7 +133,7 @@ for i in range(1, edgeCount+1):
 
 ################################################################################  
 # Ordre des cliques maximales
-minorant = nx.graph_clique_number(G)
+minorant = getMinorant(G,True)
 temp =raw_input(str(minorant))
 ################################################################################  
 # Ordre du graphe
