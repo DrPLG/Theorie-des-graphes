@@ -10,17 +10,20 @@
 # V 0.06 Algorithme de Sikov (1/2). Contractions. Validé le 14.05.2015 
 # V 0.07 Algorithme de Sikov (2/2). Ajout d'arête. Validé le 15.05.2015
 # Mise en garde : à utiliser uniquement avec des petits graphes, et beaucoup d'arêtes.
+# V 0.08 Utilisation du minorant pour identifier avant et pendant l'algorithme une solution optimale. Validé le 15.05.2015
 
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
 
+global minorant
 
 ################################################################################
 # Fonctions auxiliaires
 
 
 def Sikov(Gs,couleurs):
+    global minorant
     degres = nx.degree(Gs)
     ordre = len(Gs)
     # Identification d'une clique
@@ -67,8 +70,10 @@ def Sikov(Gs,couleurs):
         couleursIs = couleurs[:]
         # Calcul des deux colorations avec les deux nouveaux graphes
         outHs = Sikov(Hs,couleursHs)
+        if outHs[1]==minorant:
+            return (outHs[0][:],outHs[1])
         outIs = Sikov(Is,couleursIs)
-        #print outHs, outIs
+        print outHs[1], outIs[1]
         if outHs[1]<=outIs[1]:
             return (outHs[0][:],outHs[1])
         else:
@@ -111,8 +116,7 @@ for i in range(1, edgeCount+1):
 ################################################################################  
 # Ordre des cliques maximales
 minorant = nx.graph_clique_number(G)
-# print minorant
-
+temp =raw_input(str(minorant))
 ################################################################################  
 # Ordre du graphe
 numberOfNodes = len(G)
@@ -189,27 +193,30 @@ else:
  
 ################################################################################  
 # Début de l'algorithme avec contractions de Sikov
+# Nécessité d'une telle étaoe ?
+if numberOfColors > minorant:
 
-# Remise à -1 des couleurs
-for sommet in liste:
-    G.node[sommet]['color']=-1
+
+    # Remise à -1 des couleurs
+    for sommet in liste:
+        G.node[sommet]['color']=-1
+        
+    out = Sikov(G,nx.get_node_attributes(G,'color').values())                      
+    couleurs = out[0]
+    gamma = out[1]
     
-out = Sikov(G,nx.get_node_attributes(G,'color').values())                      
-couleurs = out[0]
-gamma = out[1]
-
-print couleurs
-
-# Sans doute à revoir dans le futur, besoin de plusieurs passages ?
-for sommet in liste:
-    if type(couleurs[sommet]) == int:
-        G.node[sommet]['color']=couleurs[sommet]
-    else:
-        G.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
-                                                          
-print "Coloration optimale. Le nombre chromatique est "+str(gamma)+"."                                                                                                                    
-                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                  
+    print couleurs
+    
+    # Sans doute à revoir dans le futur, besoin de plusieurs passages ?
+    for sommet in liste:
+        if type(couleurs[sommet]) == int:
+            G.node[sommet]['color']=couleurs[sommet]
+        else:
+            G.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
+                                                            
+    print "Coloration optimale. Le nombre chromatique est "+str(gamma)+"."                                                                                                                    
+                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                    
 ################################################################################                                                              
 # Tracé du graphe
 #pos={0:(1,2),
