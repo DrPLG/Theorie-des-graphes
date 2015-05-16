@@ -11,13 +11,14 @@
 # V 0.07 Algorithme de Sikov (2/2). Ajout d'arête. Validé le 15.05.2015
 # Mise en garde : à utiliser uniquement avec des petits graphes, et beaucoup d'arêtes.
 # V 0.08 Utilisation du minorant pour identifier avant et pendant l'algorithme une solution optimale. Validé le 15.05.2015
- 
+# V 0.09 Fonctions pour calculer des minorants. Validé le 15.05.2015
+# V 0.10 Utilisation du majorant et des minorants pour éviter les branches sans intérêt.
 
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
 
-global minorant
+global minorant,majorant
 
 ################################################################################
 # Fonctions auxiliaires
@@ -40,7 +41,10 @@ def getMinorant(Gm,clique):
         
 
 def Sikov(Gs,couleurs):
-    global minorant
+    global minorant,majorant
+    m = getMinorant(Gs,False)  
+    if m>majorant:
+        return (couleurs[:],1000)
     degres = nx.degree(Gs)
     ordre = len(Gs)
     # Identification d'une clique
@@ -49,7 +53,9 @@ def Sikov(Gs,couleurs):
         for sommet in Gs:
             couleurs[sommet] = couleur
             couleur += 1
-        print ordre
+        if ordre<majorant:
+            majorant = ordre
+            print ordre
         return (couleurs,ordre)
     else:
         liste = sorted(degres, key=degres.get, reverse=True)
@@ -208,12 +214,12 @@ if numberOfColors == minorant:
     print "Coloration optimale. Le nombre chromatique est "+str(minorant)+"."
 else:
     print "Le nombre chromatique est compris entre "+str(minorant)+" et "+str(numberOfColors)+"."
- 
+temp =raw_input(str(numberOfColors)) 
 ################################################################################  
 # Début de l'algorithme avec contractions de Sikov
 # Nécessité d'une telle étaoe ?
 if numberOfColors > minorant:
-
+    majorant = numberOfColors
 
     # Remise à -1 des couleurs
     for sommet in liste:
