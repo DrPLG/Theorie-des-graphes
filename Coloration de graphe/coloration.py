@@ -13,6 +13,8 @@
 # V 0.08 Utilisation du minorant pour identifier avant et pendant l'algorithme une solution optimale. Validé le 15.05.2015
 # V 0.09 Fonctions pour calculer des minorants. Validé le 15.05.2015
 # V 0.10 Utilisation du majorant et des minorants pour éviter les branches sans intérêt.
+# V 0.11 Mise à l'écart des sommets de degré "faible"  - Réintégation à effectuer ultérieurement. Validé le 23.05.2015
+
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -42,8 +44,9 @@ def getMinorant(Gm,clique):
 
 def Sikov(Gs,couleurs):
     global minorant,majorant
-    m = getMinorant(Gs,False)  
-    if m>majorant:
+    m = getMinorant(Gs,False)
+    print m, majorant
+    if m>=majorant:
         return (couleurs[:],1000)
     degres = nx.degree(Gs)
     ordre = len(Gs)
@@ -67,16 +70,25 @@ def Sikov(Gs,couleurs):
                 break
             else:
                 i += 1
-        # Choix du sommet de degré le plus faible, non voisin du précédent.
+        ## Choix du sommet de degré le plus faible, non voisin du précédent.
+        #voisinsA = nx.neighbors(Gs, sommetAccueil)
+        #i = -1
+        #while True:
+        #    if liste[i] not in voisinsA:
+        #        sommetSupprime = liste[i]
+        #        break
+        #    else:
+        #        i -= 1
+        # Choix du sommet de degré le plus élevé, non voisin du précédent.
         voisinsA = nx.neighbors(Gs, sommetAccueil)
-        i = -1
+        i += 1
         while True:
             if liste[i] not in voisinsA:
                 sommetSupprime = liste[i]
                 break
             else:
-                i -= 1
-        # Contraction
+                i += 1
+        ## Contraction
         # Copie du graphe, 
         Hs = Gs.copy()
         # Ajout des nouvelles arêtes
@@ -86,6 +98,7 @@ def Sikov(Gs,couleurs):
         # Et suppression du sommetSupprime
         Hs.remove_node(sommetSupprime)
         couleursHs= couleurs[:]
+        #print sommetSupprime
         couleursHs[sommetSupprime] = "c"+str(sommetAccueil)
         
         # Ajout d'arête
@@ -103,54 +116,80 @@ def Sikov(Gs,couleurs):
         else:
             return (outIs[0][:],outIs[1])
         
+def creationGraphe():    
+    # Emplacement du fichier data
+    fileLocation = sys.argv[1].strip()
+    inputDataFile = open(fileLocation, 'r')
+    inputData = ''.join(inputDataFile.readlines())
+    inputDataFile.close()
+
+    # Lecture du fichier data
+    lines = inputData.split('\n')
+    tempData = open('tempData','w')
+    firstLine = lines[0].split()
+    nodeCount = int(firstLine[0])
+    edgeCount = int(firstLine[1])
+
+    # Création du graphe
+    G=nx.Graph()
+    G.add_nodes_from(range(0,nodeCount))
+
+    for i in range(1, edgeCount+1):
+        line=lines[i]
+        parts = line.split()
+        G.add_edge(int(parts[0]), int(parts[1]))
+
+    #G = nx.Graph()
+    #H = range(8)
+    #G.add_nodes_from(H,dsat=0)
+    #G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)])
+
+    return G
     
 
+# Nettoyage du graphe, en supprimant les sommets de degré inférieur strictement à la taille d'une clique maximale
+def nettoyageGraphe(Gn,clique):
+    Hn = Gn.copy()
+    for sommet in Hn.nodes():
+        if nx.degree(Hn,sommet)<clique:
+            Hn.remove_node(sommet)
+    return Hn
 
 
 ################################################################################  
-# Emplacement du fichier data
-fileLocation = sys.argv[1].strip()
-inputDataFile = open(fileLocation, 'r')
-inputData = ''.join(inputDataFile.readlines())
-inputDataFile.close()
-
-# Lecture du fichier data
-lines = inputData.split('\n')
-tempData = open('tempData','w')
-firstLine = lines[0].split()
-nodeCount = int(firstLine[0])
-edgeCount = int(firstLine[1])
-
-
-# Création du graphe
-G=nx.Graph()
-G.add_nodes_from(range(0,nodeCount))
-
-for i in range(1, edgeCount+1):
-    line=lines[i]
-    parts = line.split()
-    G.add_edge(int(parts[0]), int(parts[1]))
-
 ## Création du graphe
-#G = nx.Graph()
-#H = range(8)
-#G.add_nodes_from(H,dsat=0)
-#G.add_edges_from([(1,2),(1,3),(4,5),(5,7),(4,7),(1,7),(3,6)])
+G = creationGraphe()
 
 ################################################################################  
-# Ordre des cliques maximales
-minorant = getMinorant(G,True)
-temp =raw_input(str(minorant))
+# Obtention de la taille d'une clique maximale
+cliqueMax = nx.graph_clique_number(G)
+
 ################################################################################  
+
+# Mise à -1 des couleurs
+for sommet in G.nodes():
+    G.node[sommet]['color']=-1
+
+
+# Création d'un sous-graphe sG, où les sommets de degré inférieur strictement à la taille d'une clique maximale sont écartés.
+print nx.degree(G).values()<nx.graph_clique_number(G)
+#listeGardes  = [i for i in j if i >= 5]
+sG = nettoyageGraphe(G,cliqueMax)
+
 # Ordre du graphe
-numberOfNodes = len(G)
+numberOfNodes = len(sG)
+#print len(G), len(sG)
+
+# Obtention d'un minorant
+minorant = getMinorant(sG,False)
+minorant = max(minorant, cliqueMax)
 
 ## Coloration de chaque sommet par une couleur distincte
 #for i in range(8):
 #    G.node[i]['color']=i    
 
 # Liste des sommets dans l'ordre décroissant des degrés
-degres =nx.degree(G)
+degres =nx.degree(sG)
 liste = sorted(degres, key=degres.get, reverse=True)
 
 # Coloration des sommets par DSATUR
@@ -164,21 +203,21 @@ nonColoredNodes = liste[:]
 # Calcul des DSAT version PLG (prise en compte du degré)
 # dsat = nombre de voisins colorés + degre/(degreMax+1)
 for sommet in liste:
-    G.node[sommet]['dsat']=float(nx.degree(G,sommet))/(degreMax+1)
+    sG.node[sommet]['dsat']=float(nx.degree(sG,sommet))/(degreMax+1)
 
 # Coloration d'un maximum de sommets avec la première couleur
 for sommet in liste:
     #print sommet
     #print nx.get_node_attributes(G,'dsat').values()
-    voisins = nx.neighbors(G, sommet)
-    couleurDesVoisins = nx.get_node_attributes(G.subgraph(voisins),'color').values()
+    voisins = nx.neighbors(sG, sommet)
+    couleurDesVoisins = nx.get_node_attributes(sG.subgraph(voisins),'color').values()
     #print couleurDesVoisins
     if not (1 in couleurDesVoisins):
-        G.node[sommet]['color']=1
+        sG.node[sommet]['color']=1
         numberOfColoredNodes += 1
         nonColoredNodes.remove(sommet)
         for voisin in voisins:
-            G.node[voisin]['dsat'] +=1
+            sG.node[voisin]['dsat'] +=1
         #print nx.get_node_attributes(G,'dsat').values()
     #else:
         #G.node[sommet]['color']=0
@@ -186,30 +225,32 @@ for sommet in liste:
 #print nx.get_node_attributes(G,'dsat').values()
 
 # Tant que tous les sommets ne sont pas colorés :
+
 while numberOfColoredNodes<numberOfNodes:
+    #print numberOfColoredNodes, numberOfNodes
     # Tri des sommets par DSAT (et degres) décroissant
     #degres =nx.degree(G)
     #liste = sorted(degres, key=degres.get, reverse=True)
-    dsat = nx.get_node_attributes(G.subgraph(nonColoredNodes),'dsat')
+    dsat = nx.get_node_attributes(sG.subgraph(nonColoredNodes),'dsat')
     
     sommet = max(dsat, key=dsat.get)
-    voisins = nx.neighbors(G, sommet)
-    couleurDesVoisins = nx.get_node_attributes(G.subgraph(voisins),'color').values()
+    voisins = nx.neighbors(sG, sommet)
+    couleurDesVoisins = nx.get_node_attributes(sG.subgraph(voisins),'color').values()
     
     couleur = 1
     while True:
         if not (couleur in couleurDesVoisins):
-            G.node[sommet]['color']=couleur
+            sG.node[sommet]['color']=couleur
             numberOfColoredNodes += 1
             nonColoredNodes.remove(sommet)
             for voisin in voisins:
-                G.node[voisin]['dsat'] +=1
+                sG.node[voisin]['dsat'] +=1
             break   
         else:
             couleur += 1
 
 # print nx.get_node_attributes(G,'color').values()    
-numberOfColors = max(nx.get_node_attributes(G,'color').values() )
+numberOfColors = max(nx.get_node_attributes(sG,'color').values() )
 if numberOfColors == minorant:
     print "Coloration optimale. Le nombre chromatique est "+str(minorant)+"."
 else:
@@ -217,15 +258,15 @@ else:
 temp =raw_input(str(numberOfColors)) 
 ################################################################################  
 # Début de l'algorithme avec contractions de Sikov
-# Nécessité d'une telle étaoe ?
+# Nécessité d'une telle étape ?
 if numberOfColors > minorant:
     majorant = numberOfColors
 
     # Remise à -1 des couleurs
-    for sommet in liste:
-        G.node[sommet]['color']=-1
-        
-    out = Sikov(G,nx.get_node_attributes(G,'color').values())                      
+    #for sommet in liste:
+     #   sG.node[sommet]['color']=-1
+    print nx.get_node_attributes(sG,'color').values()
+    out = Sikov(sG,nx.get_node_attributes(G,'color').values())                      
     couleurs = out[0]
     gamma = out[1]
     
@@ -234,9 +275,9 @@ if numberOfColors > minorant:
     # Sans doute à revoir dans le futur, besoin de plusieurs passages ?
     for sommet in liste:
         if type(couleurs[sommet]) == int:
-            G.node[sommet]['color']=couleurs[sommet]
+            sG.node[sommet]['color']=couleurs[sommet]
         else:
-            G.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
+            sG.node[sommet]['color']=couleurs[int(couleurs[sommet][1:])]
                                                             
     print "Coloration optimale. Le nombre chromatique est "+str(gamma)+"."                                                                                                                    
                                                                                                                                                                                 
@@ -251,6 +292,6 @@ if numberOfColors > minorant:
      #5:(4,0),
      #6:(3,1),
      #7:(5,1)}
-pos=nx.shell_layout(G)
-nx.draw_networkx(G,pos,node_color=nx.get_node_attributes(G,'color').values())
+pos=nx.shell_layout(sG)
+nx.draw_networkx(sG,pos,node_color=nx.get_node_attributes(sG,'color').values())
 plt.show()
